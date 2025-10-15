@@ -76,6 +76,7 @@ const create = (node, index, parent) => {
   const remainingFirstParagraphChildren = firstParagraph.children.slice(1, firstParagraph.children.length);
   const newFirstParagraphChildren = [];
   const rest = headerData.rest.replace(/^(\r\n|\r|\n)/, "");
+  const customTitle = headerData.customTitle.trim();
   if (rest === "" && remainingFirstParagraphChildren.length === 0 && node.children.length < 4) {
     return [SKIP];
   }
@@ -114,13 +115,13 @@ const create = (node, index, parent) => {
   if (node.children.length > 2) {
     alertBodyChildren.push(...node.children.slice(2, node.children.length));
   }
-  const alertElement = build(alertOptions, alertBodyChildren);
+  const alertElement = build(alertOptions, alertBodyChildren, customTitle);
   if (alertElement !== null) {
     parent.children[index] = alertElement;
   }
   return [SKIP];
 };
-const defaultBuild = (alertOptions, originalChildren) => {
+const defaultBuild = (alertOptions, originalChildren, customTitle) => {
   let alertIconElement;
   if (isElement(alertOptions.icon)) {
     alertIconElement = alertOptions.icon;
@@ -138,7 +139,7 @@ const defaultBuild = (alertOptions, originalChildren) => {
   }
   const titleElementContent = {
     type: "text",
-    value: alertOptions.title
+    value: customTitle || alertOptions.title
   };
   const alert = {
     type: "element",
@@ -172,6 +173,7 @@ const extractHeaderData = (paragraph) => {
   const header = paragraph.children[0];
   let alertType;
   let rest = "";
+  let customTitle = "";
   if (internalOptions.supportLegacy) {
     if (header.type === "element" && header.tagName === "strong") {
       if (header.children[0].type === "text") {
@@ -180,7 +182,7 @@ const extractHeaderData = (paragraph) => {
     }
   }
   if (header.type === "text") {
-    const match = /\[!(.*?)\]/.exec(header.value);
+    const match = /\[!(.*?)\](.*)/.exec(header.value);
     if (!match?.input) {
       return null;
     }
@@ -188,11 +190,12 @@ const extractHeaderData = (paragraph) => {
       rest = match.input.replace(match[0], "");
     }
     alertType = match[1];
+    customTitle = match[2];
   }
   if (typeof alertType === "undefined") {
     return null;
   }
-  return { alertType, rest };
+  return { alertType, rest, customTitle };
 };
 const getAlertOptions = (alertType) => {
   const alertOptions = internalOptions.alerts.find((alert) => {

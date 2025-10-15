@@ -10,7 +10,7 @@ export interface IAlert {
     title: string
 }
 
-export type DefaultBuildType = (alertOptions: IAlert, originalChildren: ElementContent[]) => ElementContent | null
+export type DefaultBuildType = (alertOptions: IAlert, originalChildren: ElementContent[], customTitle: string) => ElementContent | null
 
 export interface IOptions {
     alerts: IAlert[]
@@ -136,6 +136,9 @@ const create = (node: Element, index: number | undefined, parent: Parent | undef
     // remove the first line break from rest if there is one
     const rest = headerData.rest.replace(/^(\r\n|\r|\n)/, '')
 
+    // grab potential custom defined title and trim
+    const customTitle = headerData.customTitle.trim()
+
     // if the rest is empty and the first paragraph has no children
     // this is a special github case (as of Mar. 2024)
     // where the alert is only the type (no alert body)
@@ -197,7 +200,7 @@ const create = (node: Element, index: number | undefined, parent: Parent | undef
         alertBodyChildren.push(...node.children.slice(2, node.children.length))
     }
 
-    const alertElement = build(alertOptions, alertBodyChildren)
+    const alertElement = build(alertOptions, alertBodyChildren, customTitle)
 
     // replace the original blockquote with the
     // new alert element and its children
@@ -209,7 +212,7 @@ const create = (node: Element, index: number | undefined, parent: Parent | undef
 
 }
 
-export const defaultBuild: DefaultBuildType = (alertOptions, originalChildren) => {
+export const defaultBuild: DefaultBuildType = (alertOptions, originalChildren, customTitle) => {
 
     let alertIconElement: Element | undefined
 
@@ -236,7 +239,7 @@ export const defaultBuild: DefaultBuildType = (alertOptions, originalChildren) =
 
     const titleElementContent: ElementContent = {
         type: 'text',
-        value: alertOptions.title
+        value: customTitle || alertOptions.title
     }
 
     const alert: ElementContent = {
@@ -270,11 +273,12 @@ export const defaultBuild: DefaultBuildType = (alertOptions, originalChildren) =
 
 }
 
-const extractHeaderData = (paragraph: Element): { alertType: string, rest: string } | null => {
+const extractHeaderData = (paragraph: Element): { alertType: string, rest: string, customTitle: string } | null => {
 
     const header = paragraph.children[0]
     let alertType: string | undefined
     let rest = ''
+    let customTitle = ''
 
     if (internalOptions.supportLegacy) {
 
@@ -290,7 +294,7 @@ const extractHeaderData = (paragraph: Element): { alertType: string, rest: strin
 
     if (header.type === 'text') {
 
-        const match = (/\[!(.*?)\]/).exec(header.value)
+        const match = (/\[!(.*?)\](.*)/).exec(header.value)
 
         if (!match?.input) {
             return null
@@ -305,14 +309,14 @@ const extractHeaderData = (paragraph: Element): { alertType: string, rest: strin
         }
 
         alertType = match[1]
-
+        customTitle = match[2]
     }
 
     if (typeof alertType === 'undefined') {
         return null
     }
 
-    return { alertType, rest }
+    return { alertType, rest, customTitle }
 
 }
 

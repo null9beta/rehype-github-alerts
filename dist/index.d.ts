@@ -4,7 +4,7 @@ export interface IAlert {
     icon: string | Element;
     title: string;
 }
-export type DefaultBuildType = (alertOptions: IAlert, originalChildren: ElementContent[]) => ElementContent | null;
+export type DefaultBuildType = (alertOptions: IAlert, originalChildren: ElementContent[], customTitle: string) => ElementContent | null;
 export interface IOptions {
     alerts: IAlert[];
     supportLegacy?: boolean;
